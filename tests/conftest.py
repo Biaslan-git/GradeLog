@@ -1,9 +1,10 @@
 import pytest_asyncio
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
+from src.service import UserService
 from src.models import Base
 
 # общий движок
-TEST_ENGINE = create_async_engine("sqlite+aiosqlite:///:memory:", echo=True)
+TEST_ENGINE = create_async_engine("sqlite+aiosqlite:///:memory:", echo=False)
 
 # Таблицы для каждого модуля
 @pytest_asyncio.fixture(scope="function", autouse=True)
@@ -23,3 +24,15 @@ async def async_session(test_session):
     async with test_session() as s:
         yield s
 
+@pytest_asyncio.fixture
+async def user_service(test_session):
+    return UserService(test_session)
+
+@pytest_asyncio.fixture(scope="function")
+async def default_user(user_service):
+    user = await user_service.add_user(
+        chat_id=999,
+        username='default_user',
+        full_name='Default User',
+    )
+    return user

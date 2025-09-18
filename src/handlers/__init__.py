@@ -1,7 +1,9 @@
-from src.handlers.handlers import router as main_router
+from src.handlers.main import router as main_router
 from src.handlers.system import router as system_router
+from src.handlers.subjects import router as subjects_router
 
 routers = [
     main_router,
     system_router,
+    subjects_router,
 ]

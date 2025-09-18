@@ -3,18 +3,16 @@ import pytest_asyncio
 
 from src.service import UserService
 
-@pytest_asyncio.fixture
-async def user_service(test_session):
-    return UserService(test_session)
 
 @pytest.mark.asyncio
-async def test_add_user(user_service):
+async def test_add_user(user_service: UserService):
     user1 = await user_service.add_user(
         chat_id=12345,
         username='testuser',
         full_name='Test User',
     )
-    
+
+    assert user1.id == 1
     assert user1.chat_id == 12345
     assert user1.username == 'testuser'
     assert user1.full_name == 'Test User'
@@ -27,20 +25,13 @@ async def test_add_user(user_service):
     
     assert user2.username == None
 
-
 @pytest.mark.asyncio
-async def test_add_user_unique_constraints(user_service):
-    await user_service.add_user(
-        chat_id=12345,
-        username='testuser',
-        full_name='Test User'
-    )
-
+async def test_add_user_unique_constraints(user_service: UserService, default_user):
     with pytest.raises(ValueError):
         await user_service.add_user(
-            chat_id=12345,
+            chat_id=default_user.chat_id,
             username='testuser2',
             full_name='Test User 2'
         )
-        
+
 

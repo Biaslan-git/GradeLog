@@ -1,4 +1,4 @@
-from aiogram import Router, F, types
+from aiogram import Router, types
 from aiogram.filters import Command
 
 from src.service import UserService
@@ -20,4 +20,8 @@ async def cmd_start(message: types.Message):
         await user_service.add_user(message.chat.id, message.from_user.username, message.from_user.full_name)
     except ValueError:
         pass
+
+
+
+
 

@@ -1,4 +1,4 @@
-from sqlalchemy import Column, ForeignKey, null
+from sqlalchemy import Column, ForeignKey, UniqueConstraint, null
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.orm.attributes import backref_listeners
 from src.database import Base
@@ -37,6 +37,10 @@ class Subject(Base):
         'Grade', 
         back_populates='subject',
         cascade="all, delete-orphan"
+    )
+
+    __table_args__ = (
+        UniqueConstraint('title', 'user_id', name='uq_title_user'),
     )
 
 class Grade(Base):
