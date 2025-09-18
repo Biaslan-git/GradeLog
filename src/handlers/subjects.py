@@ -18,7 +18,7 @@ async def subjects(message: types.Message):
     if subjects:
         answer_text = (
             'Ваши предметы:\n'
-        ) + '\n'.join([f'/s{x.id} {x.title} | {x.numerator}/{x.denominator}' for x in subjects])
+        ) + '\n'.join([f'/s{x.id} {x.title} ({x.numerator}/{x.denominator})' for x in subjects])
     else:
         answer_text = (
             'У вас нет ни одного добавленного предмета, сделайте это с помощью команды /add_subject'
