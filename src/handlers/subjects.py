@@ -18,7 +18,7 @@ async def subjects(message: types.Message):
     if subjects:
         answer_text = (
             'Ваши предметы:\n'
-        ) + '\n'.join([f'/s{x.id} {x.title} ({x.numerator}/{x.denominator})' for x in subjects])
+        ) + '\n'.join([f'/S{x.id} {x.title} ({x.numerator}/{x.denominator})' for x in subjects])
     else:
         answer_text = (
             'У вас нет ни одного добавленного предмета, сделайте это с помощью команды /add_subject'
@@ -26,6 +26,9 @@ async def subjects(message: types.Message):
 
     await message.answer(answer_text)
 
+@router.message(F.text.startswith('/S'))
+@error_handler
+async def get_subject(message: types.Message):
 
 @router.message(StateFilter(None), Command('add_subject'))
 @error_handler
@@ -51,6 +54,7 @@ async def add_subject_name_and_coef(message: types.Message, state: FSMContext):
     subjects = []
     try:
         for subject_text in message.text.split('\n'):
+            subject_text = subject_text.strip()
             title = subject_text[:-3] # type: ignore
             numerator, denominator = map(int, subject_text[-3:].split('/')) # type: ignore
             subjects.append([title, numerator, denominator])
