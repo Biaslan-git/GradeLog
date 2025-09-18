@@ -29,6 +29,21 @@ async def subjects(message: types.Message):
 @router.message(F.text.startswith('/S'))
 @error_handler
 async def get_subject(message: types.Message):
+    user_service = UserService()
+    try:
+        subject_id = int(message.text.strip('/S')) # type: ignore
+        subject = await user_service.get_subject(
+            chat_id=message.chat.id, 
+            subject_id=subject_id
+        )
+    except ValueError:
+        await message.answer('Некорректная комманда')
+        return
+    
+    answer = (
+        f'Предмет: {subject.title}\n'
+        f'Соотношение часов: {subject.numerator}/{subject.denominator}\n'
+    )
 
 @router.message(StateFilter(None), Command('add_subject'))
 @error_handler

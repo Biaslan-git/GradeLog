@@ -47,6 +47,20 @@ class UserService:
             except NoResultFound:
                 raise ValueError('User does not exists.')
 
+    async def get_subject(self, chat_id: int, subject_id: int) -> Subject:
+        q = select(Subject).options(selectinload(Subject.user)).where(Subject.id == subject_id)
+        async with self.async_session() as session:
+            try:
+                result = await session.execute(q)
+                subject = result.scalar_one()
+                if subject.user.chat_id != chat_id:
+                    raise ValueError
+                return subject
+            except NoResultFound:
+                raise ValueError('User does not exists.')
+            except ValueError:
+                raise ValueError('You do not have permission to access this resource')
+
     async def add_subject(
         self, 
         chat_id: int,
@@ -71,3 +85,4 @@ class UserService:
                 await session.rollback()
                 raise ValueError('This subject title already exists in this user subjects/')
             return subject
+
