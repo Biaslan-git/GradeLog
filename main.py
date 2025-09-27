@@ -5,11 +5,9 @@ from aiogram import Dispatcher
 
 from src.handlers import routers
 from src.bot import bot
+from src.dp import dp
 
 logging.basicConfig(level=logging.INFO)
-
-dp = Dispatcher()
-
 
 # Запуск процесса поллинга новых апдейтов
 async def main():

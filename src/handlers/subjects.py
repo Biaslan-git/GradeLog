@@ -2,70 +2,68 @@ from aiogram import Router, F, types
 from aiogram.filters import Command, StateFilter
 from aiogram.fsm.context import FSMContext
 
+from src.keyboards import get_back_btn, get_back_btn_kb
 from src.service import UserService
 from src.middlewares import error_handler
 from src.states import AddSubjectState
+from src.texts import subjects_list_is_null, add_subject_instruction, answer_on_format_error
 
 
 router = Router()
 
-@router.message(Command('subjects'))
+@router.callback_query(F.data == 'subjects')
 @error_handler
-async def subjects(message: types.Message):
+async def subjects(callback: types.CallbackQuery):
     user_service = UserService()
-    subjects = await user_service.get_user_subjects(message.chat.id)
+    subjects = await user_service.get_user_subjects(callback.message.chat.id)
+
+    buttons = []
     
     if subjects:
         answer_text = (
-            'Ваши предметы:\n'
-        ) + '\n'.join([f'/S{x.id} {x.title} ({x.numerator}/{x.denominator})' for x in subjects])
+            '📚 Твои предметы:'
+        )
+        for subject in subjects:
+            buttons.append([types.InlineKeyboardButton(
+                text=f'{subject.title}',
+                callback_data=f'subject_{subject.id}'
+            )])
+        buttons.append(get_back_btn())
+        keyboard = types.InlineKeyboardMarkup(inline_keyboard=buttons)
+        await callback.message.answer(answer_text, reply_markup=keyboard)
     else:
-        answer_text = (
-            'У вас нет ни одного добавленного предмета, сделайте это с помощью команды /add_subject'
+        await callback.message.answer(
+            subjects_list_is_null, 
+            reply_markup=get_back_btn_kb()
         )
 
-    await message.answer(answer_text)
-
-@router.message(F.text.startswith('/S'))
+@router.callback_query(F.data.startswith('subject_'))
 @error_handler
-async def get_subject(message: types.Message):
+async def get_subject(callback: types.CallbackQuery):
     user_service = UserService()
-    try:
-        subject_id = int(message.text.strip('/S')) # type: ignore
-        subject = await user_service.get_subject(
-            chat_id=message.chat.id, 
-            subject_id=subject_id
-        )
-    except ValueError:
-        await message.answer('Некорректная комманда')
-        return
-    
+    subject_id = int(callback.data.split('_')[-1]) # type: ignore
+    subject = await user_service.get_subject(
+        chat_id=callback.message.chat.id, 
+        subject_id=subject_id
+    )
+
     answer = (
         f'Предмет: {subject.title}\n'
         f'Соотношение часов: {subject.numerator}/{subject.denominator}\n'
     )
 
-@router.message(StateFilter(None), Command('add_subject'))
+    await callback.message.answer(answer, reply_markup=get_back_btn_kb(data='subjects'))
+    await callback.answer()
+
+@router.callback_query(StateFilter(None), F.data == 'add_subject')
 @error_handler
-async def add_subject(message: types.Message, state: FSMContext):
-    answer_text = (
-        'Для добавления нового предмета отправьте сообщение в формате:\n'
-        '<Название предмета> <соотношение/часов>\n\n'
-        'Примеры:\n'
-        'Экономика 1/2\n'
-        'Мат. анализ 2/3\n\n'
-        'Можно добавить несколько предметов одним сообщение, написав их каждый с новой строки.'
-    )
-    await message.answer(answer_text)
+async def add_subject(callback: types.CallbackQuery, state: FSMContext):
+    await callback.message.answer(add_subject_instruction, reply_markup=get_back_btn_kb())
     await state.set_state(AddSubjectState.subject_name_and_coef)
 
 @router.message(AddSubjectState.subject_name_and_coef, F.text)
 @error_handler
 async def add_subject_name_and_coef(message: types.Message, state: FSMContext):
-    answer_on_error = (
-        'Некорректный формат сообщения. Попробуйте еще раз.'
-    )
-
     subjects = []
     try:
         for subject_text in message.text.split('\n'):
@@ -74,7 +72,7 @@ async def add_subject_name_and_coef(message: types.Message, state: FSMContext):
             numerator, denominator = map(int, subject_text[-3:].split('/')) # type: ignore
             subjects.append([title, numerator, denominator])
     except ValueError:
-        await message.answer(answer_on_error)
+        await message.answer(answer_on_format_error)
         return
 
     answer = ''
@@ -98,3 +96,5 @@ async def add_subject_name_and_coef(message: types.Message, state: FSMContext):
 
     await message.answer(answer)
     await state.clear()
+
+

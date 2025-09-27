@@ -1,8 +1,8 @@
 from functools import wraps
 import traceback
 
-from aiogram import types
-from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
+from aiogram import BaseMiddleware, types
+from aiogram.fsm.context import FSMContext
 
 def error_handler(func):
     @wraps(func)
@@ -20,3 +20,19 @@ def error_handler(func):
     return wrapper
 
 
+class ClearStateOnBackMiddleware(BaseMiddleware):
+    async def __call__(self, handler, event: types.CallbackQuery, data: dict):
+        state: FSMContext = data.get("state")
+        if isinstance(event, types.CallbackQuery) and event.data.endswith('clear_state'):
+            await state.clear()
+        return await handler(event, data)
+
+class DeleteOldMessageOnCallbackMiddleware(BaseMiddleware):
+    async def __call__(self, handler, event: types.CallbackQuery, data: dict):
+        if event.message:  # бывает, что message = None (например, кнопка под инлайн-результатом)
+            try:
+                await event.message.delete()
+            except Exception as e:
+                print(f"Не удалось удалить сообщение: {e}")
+        
+        return await handler(event, data)

@@ -9,22 +9,25 @@ main_kb_btns = [
 main_kb = InlineKeyboardMarkup(inline_keyboard=main_kb_btns)
 
 
+BACK_BUTTON_DATA = 'main_clear_state' 
+BACK_BUTTON_TEXT = '⬅ Назад'
+
 def get_back_btn(
-    back_button_data: str = 'main', 
-    back_button_text: str = '⬅ Назад'
+    data: str = BACK_BUTTON_DATA, 
+    text: str = BACK_BUTTON_TEXT
 ) -> list[InlineKeyboardButton]:
     return [InlineKeyboardButton(
-        text=back_button_text,
-        callback_data=back_button_data
+        text=text,
+        callback_data=data
     )]
 
 def get_back_btn_kb(
-    back_button_data: str = 'main', 
-    back_button_text: str = '⬅ Назад'
+    data: str = BACK_BUTTON_DATA, 
+    text: str = BACK_BUTTON_TEXT
 ) -> InlineKeyboardMarkup:
     button = get_back_btn(
-        back_button_data='main', 
-        back_button_text='⬅ Назад'
+        data=data, 
+        text=text,
     )
     kb = InlineKeyboardMarkup(inline_keyboard=[button])
     return kb
