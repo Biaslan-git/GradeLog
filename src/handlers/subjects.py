@@ -1,5 +1,5 @@
 from aiogram import Router, F, types
-from aiogram.filters import Command, StateFilter
+from aiogram.filters import StateFilter
 from aiogram.fsm.context import FSMContext
 
 from src.keyboards import get_back_btn, get_back_btn_kb
@@ -91,7 +91,7 @@ async def add_subject_name_and_coef(message: types.Message, state: FSMContext):
     elif len(subjects) == 1:
         answer = 'Предмет добавлен:\n' + answer
     else:
-        await message.answer(answer_on_error)
+        await message.answer(answer_on_format_error)
         return
 
     await message.answer(answer)
