@@ -1,9 +1,14 @@
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
+from typing import Callable
+
+from src.service import UserService
+
 
 main_kb_btns = [
     [InlineKeyboardButton(text='Мои предметы', callback_data='subjects')],
     [InlineKeyboardButton(text='Добавить предмет', callback_data='add_subject')],
+    [InlineKeyboardButton(text='Удалить предмет', callback_data='delete_subject')],
     # [InlineKeyboardButton(text='Добавить баллы', callback_data='add_subject')],
 ]
 main_kb = InlineKeyboardMarkup(inline_keyboard=main_kb_btns)
@@ -32,4 +37,21 @@ def get_back_btn_kb(
     kb = InlineKeyboardMarkup(inline_keyboard=[button])
     return kb
 
-def generate_list_btns(items_prefix: str, )
+async def get_user_subjects_btns(
+    chat_id: int,
+    item_id_prefix: str,
+    item_title_prefix: str = '',
+    item_title_suffix: str = ''
+) -> list[list[InlineKeyboardButton]]:
+    user_service = UserService()
+    subjects = await user_service.get_user_subjects(chat_id)
+    
+    buttons = []
+    for subject in subjects:
+        buttons.append([InlineKeyboardButton(
+            text=f'{item_title_prefix}{subject.title}{item_title_suffix}',
+            callback_data=f'{item_id_prefix}{subject.id}'
+        )])
+
+    return buttons
+

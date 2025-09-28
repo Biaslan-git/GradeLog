@@ -4,6 +4,9 @@ import traceback
 from aiogram import BaseMiddleware, types
 from aiogram.fsm.context import FSMContext
 
+from src.config import settings
+from src.bot import bot
+
 def error_handler(func):
     @wraps(func)
     async def wrapper(message_or_callback: types.Message | types.CallbackQuery, *args, **kwargs):
@@ -15,8 +18,17 @@ def error_handler(func):
 
             error_message = f'Произошла ошибка:\n{message.chat.id}\n{func.__name__}: {error_message}'
 
-            msg = await message.answer(f'{error_message}')
-            await message.answer(f'Нажми /report{msg.chat.id}x{msg.message_id}, чтобы сообщить об этом разработчику')
+            await message.answer(
+                f'{error_message}',
+                reply_markup=types.InlineKeyboardMarkup(
+                    inline_keyboard=[[
+                        types.InlineKeyboardButton(
+                            text='⬅ Сообщить разработчику и вернуться назад',
+                            callback_data=f'report'
+                        )
+                    ]]
+                )
+            )
     return wrapper
 
 

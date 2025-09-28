@@ -85,3 +85,22 @@ class UserService:
                 raise ValueError('This subject title already exists in this user subjects/')
             return subject
 
+    async def delete_subject(self, chat_id: int, subject_id: int) -> Subject:
+        q = select(Subject).where(Subject.id == subject_id)
+        async with self.async_session() as session:
+            try:
+                result = await session.execute(q)
+                subject = result.scalar_one()
+                if subject.user.chat_id != chat_id:
+                    raise ValueError('You do not have permission to access this resource.')
+
+                # Удаляем предмет
+                await session.delete(subject)
+                await session.commit()  # Сохраняем изменения в базе данных
+                
+                return subject  # Возвращаем удаленный объект
+            except NoResultFound:
+                raise ValueError('Subject does not exist.')
+            except ValueError as e:
+                raise ValueError(str(e))
+

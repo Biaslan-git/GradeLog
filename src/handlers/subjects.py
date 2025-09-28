@@ -2,11 +2,12 @@ from aiogram import Router, F, types
 from aiogram.filters import StateFilter
 from aiogram.fsm.context import FSMContext
 
-from src.keyboards import get_back_btn, get_back_btn_kb
+from src.keyboards import get_back_btn, get_back_btn_kb, get_user_subjects_btns
 from src.service import UserService
 from src.middlewares import error_handler
 from src.states import AddSubjectState
 from src.texts import subjects_list_is_null, add_subject_instruction, answer_on_format_error
+from src.utils import escape_html
 
 
 router = Router()
@@ -17,17 +18,13 @@ async def subjects(callback: types.CallbackQuery):
     user_service = UserService()
     subjects = await user_service.get_user_subjects(callback.message.chat.id)
 
-    buttons = []
+    buttons = await get_user_subjects_btns(
+        chat_id=callback.message.chat.id,
+        item_id_prefix='subject_'
+    )
     
     if subjects:
-        answer_text = (
-            '📚 Твои предметы:'
-        )
-        for subject in subjects:
-            buttons.append([types.InlineKeyboardButton(
-                text=f'{subject.title}',
-                callback_data=f'subject_{subject.id}'
-            )])
+        answer_text = '📚 Твои предметы:'
         buttons.append(get_back_btn())
         keyboard = types.InlineKeyboardMarkup(inline_keyboard=buttons)
         await callback.message.answer(answer_text, reply_markup=keyboard)
@@ -48,7 +45,7 @@ async def get_subject(callback: types.CallbackQuery):
     )
 
     answer = (
-        f'Предмет: {subject.title}\n'
+        f'Предмет: {escape_html(subject.title)}\n'
         f'Соотношение часов: {subject.numerator}/{subject.denominator}\n'
     )
 
@@ -84,21 +81,46 @@ async def add_subject_name_and_coef(message: types.Message, state: FSMContext):
             numerator=subject_data[1],
             denominator=subject_data[2]
         )
-        answer += f'- {subject.title} ({subject.numerator}/{subject.denominator})\n'
+        answer += f'- {escape_html(subject.title)} ({subject.numerator}/{subject.denominator})\n'
 
     if len(subjects) > 1:
         answer = 'Предметы добавлены:\n' + answer
     elif len(subjects) == 1:
         answer = 'Предмет добавлен:\n' + answer
     else:
-        await message.answer(answer_on_format_error)
+        await message.answer(answer_on_format_error, reply_markup=get_back_btn_kb())
         return
 
-    await message.answer(answer)
+    await message.answer(answer, reply_markup=get_back_btn_kb())
     await state.clear()
 
-@router.callback_query(F.data == 'delete_subject'):
+@router.callback_query(F.data == 'delete_subject')
+@error_handler
+async def delete_subject_menu(callback: types.CallbackQuery, msg_title: str = 'Выбери предмет для удаления:'):
+    buttons = await get_user_subjects_btns(
+        chat_id=callback.message.chat.id,
+        item_id_prefix='delete_subject_',
+        item_title_prefix='✗ ',
+        item_title_suffix=' ✗'
+    )
+    buttons.append(get_back_btn())
+
+    await callback.message.answer(
+        msg_title, 
+        reply_markup=types.InlineKeyboardMarkup(inline_keyboard=buttons)
+    )
+
+@router.callback_query(F.data.startswith('delete_subject_'))
 @error_handler
 async def delete_subject(callback: types.CallbackQuery):
+    subject_id = int(callback.data.split('_')[-1])
+    user_service = UserService()
 
-    await callback.message.answer('Выбери предмет для удаления:', reply_markup=)
+    deleted_subject = await user_service.delete_subject(callback.message.chat.id, subject_id)
+
+    msg_title = (
+        f'Предмет <b>{escape_html(deleted_subject.title)}</b> упешно удален.\n'
+        'Ты можешь удалить что-то еще или вернуться назад:'
+    )
+
+    await delete_subject_menu(callback, msg_title=msg_title)
