@@ -97,4 +97,8 @@ async def add_subject_name_and_coef(message: types.Message, state: FSMContext):
     await message.answer(answer)
     await state.clear()
 
+@router.callback_query(F.data == 'delete_subject'):
+@error_handler
+async def delete_subject(callback: types.CallbackQuery):
 
+    await callback.message.answer('Выбери предмет для удаления:', reply_markup=)

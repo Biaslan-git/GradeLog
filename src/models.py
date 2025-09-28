@@ -14,13 +14,15 @@ class User(Base):
     subjects: Mapped[list['Subject']] = relationship(
         'Subject', 
         back_populates='user',
-        cascade="all, delete-orphan"
+        cascade="all, delete-orphan",
+        lazy='selectin'
     )
 
     grades: Mapped[list['Grade']] = relationship(
         'Grade', 
         back_populates='user',
-        cascade="all, delete-orphan"
+        cascade="all, delete-orphan",
+        lazy='selectin'
     )
     
 class Subject(Base):
@@ -31,12 +33,17 @@ class Subject(Base):
     denominator: Mapped[int] = mapped_column(nullable=False)
 
     user_id: Mapped[int] = mapped_column(ForeignKey('users.id'), nullable=False)
-    user: Mapped['User'] = relationship('User', back_populates='subjects')
+    user: Mapped['User'] = relationship(
+        'User',
+        back_populates='subjects',
+        lazy='joined'
+    )
 
     grades: Mapped[list['Grade']] = relationship(
         'Grade', 
         back_populates='subject',
-        cascade="all, delete-orphan"
+        cascade="all, delete-orphan",
+        lazy='selectin'
     )
 
     __table_args__ = (
@@ -50,10 +57,18 @@ class Grade(Base):
     grade2: Mapped[int] = mapped_column(nullable=False)
 
     user_id: Mapped[int] = mapped_column(ForeignKey('users.id'), nullable=False)
-    user: Mapped['User'] = relationship('User', back_populates='grades')
+    user: Mapped['User'] = relationship(
+        'User',
+        back_populates='grades',
+        lazy='joined'
+    )
 
     subject_id: Mapped[int] = mapped_column(ForeignKey('subjects.id'), nullable=False)
-    subject: Mapped['Subject'] = relationship('Subject', back_populates='grades')
+    subject: Mapped['Subject'] = relationship(
+        'Subject',
+        back_populates='grades',
+        lazy='joined'
+    )
 
 
 

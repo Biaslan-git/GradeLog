@@ -31,3 +31,5 @@ def get_back_btn_kb(
     )
     kb = InlineKeyboardMarkup(inline_keyboard=[button])
     return kb
+
+def generate_list_btns(items_prefix: str, )

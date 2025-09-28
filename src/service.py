@@ -2,7 +2,6 @@ from dataclasses import dataclass
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError, NoResultFound
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
-from sqlalchemy.orm import selectinload
 from src.models import Subject, User
 from src.database import Session
 
@@ -38,7 +37,7 @@ class UserService:
                 raise ValueError('User does not exists.')
 
     async def get_user_subjects(self, chat_id: int) -> list[Subject]:
-        q = select(User).options(selectinload(User.subjects)).where(User.chat_id == chat_id)
+        q = select(User).where(User.chat_id == chat_id)
         async with self.async_session() as session:
             try:
                 result = await session.execute(q)
@@ -48,7 +47,7 @@ class UserService:
                 raise ValueError('User does not exists.')
 
     async def get_subject(self, chat_id: int, subject_id: int) -> Subject:
-        q = select(Subject).options(selectinload(Subject.user)).where(Subject.id == subject_id)
+        q = select(Subject).where(Subject.id == subject_id)
         async with self.async_session() as session:
             try:
                 result = await session.execute(q)
