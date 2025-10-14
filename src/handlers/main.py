@@ -25,7 +25,7 @@ async def cmd_start(message: types.Message):
 @router.callback_query(F.data.startswith('main'))
 @error_handler
 async def main_menu(callback: types.CallbackQuery):
-    await callback.message.answer(
+    await callback.message.edit_text( # type: ignore
         'Главное меню:',
         reply_markup=main_kb
     )

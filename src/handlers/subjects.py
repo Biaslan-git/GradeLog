@@ -27,9 +27,9 @@ async def subjects(callback: types.CallbackQuery):
         answer_text = '📚 Твои предметы:'
         buttons.append(get_back_btn())
         keyboard = types.InlineKeyboardMarkup(inline_keyboard=buttons)
-        await callback.message.answer(answer_text, reply_markup=keyboard)
+        await callback.message.edit_text(answer_text, reply_markup=keyboard)
     else:
-        await callback.message.answer(
+        await callback.message.edit_text(
             subjects_list_is_null, 
             reply_markup=get_back_btn_kb()
         )
@@ -49,13 +49,13 @@ async def get_subject(callback: types.CallbackQuery):
         f'Соотношение часов: {subject.numerator}/{subject.denominator}\n'
     )
 
-    await callback.message.answer(answer, reply_markup=get_back_btn_kb(data='subjects'))
+    await callback.message.edit_text(answer, reply_markup=get_back_btn_kb(data='subjects'))
     await callback.answer()
 
 @router.callback_query(StateFilter(None), F.data == 'add_subject')
 @error_handler
 async def add_subject(callback: types.CallbackQuery, state: FSMContext):
-    await callback.message.answer(add_subject_instruction, reply_markup=get_back_btn_kb())
+    await callback.message.edit_text(add_subject_instruction, reply_markup=get_back_btn_kb())
     await state.set_state(AddSubjectState.subject_name_and_coef)
 
 @router.message(AddSubjectState.subject_name_and_coef, F.text)
@@ -69,7 +69,7 @@ async def add_subject_name_and_coef(message: types.Message, state: FSMContext):
             numerator, denominator = map(int, subject_text[-3:].split('/')) # type: ignore
             subjects.append([title, numerator, denominator])
     except ValueError:
-        await message.answer(answer_on_format_error)
+        await message.answer(answer_on_format_error, reply_markup=get_back_btn_kb())
         return
 
     answer = ''
@@ -105,7 +105,7 @@ async def delete_subject_menu(callback: types.CallbackQuery, msg_title: str = '�
     )
     buttons.append(get_back_btn())
 
-    await callback.message.answer(
+    await callback.message.edit_text(
         msg_title, 
         reply_markup=types.InlineKeyboardMarkup(inline_keyboard=buttons)
     )
