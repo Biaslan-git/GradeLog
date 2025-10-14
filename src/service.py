@@ -2,6 +2,9 @@ from dataclasses import dataclass
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError, NoResultFound
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
+
+from typing import Sequence
+
 from src.models import Grade, Subject, User
 from src.database import Session
 
@@ -124,4 +127,19 @@ class UserService:
             await session.commit()
             await session.refresh(grade)
             return grade
+    
+    async def get_subject_grades(
+        self,
+        chat_id: int,
+        subject_id: int,
+    ) -> Sequence[Grade]:
+        user = await self.get_user(chat_id)
 
+        q = select(Grade).where((Grade.subject_id == subject_id) & (Grade.user_id == user.id))
+        async with self.async_session() as session:
+            try:
+                result = await session.execute(q)
+                grades = result.scalars().all()
+                return grades
+            except NoResultFound:
+                raise ValueError('User does not exists.')

@@ -1,6 +1,5 @@
-from sqlalchemy import Column, ForeignKey, UniqueConstraint, null
+from sqlalchemy import ForeignKey, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from sqlalchemy.orm.attributes import backref_listeners
 from src.database import Base
 
 

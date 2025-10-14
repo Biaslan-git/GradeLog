@@ -3,6 +3,8 @@ from aiogram.filters import StateFilter
 from aiogram.fsm.context import FSMContext
 
 from src.keyboards import get_back_btn, get_back_btn_kb, get_user_subjects_btns
+from src.constants import grades_to_marks_table
+from src.enums import TraditionalSystemMarks as TSM
 from src.service import UserService
 from src.middlewares import error_handler
 from src.states import AddSubjectState
@@ -43,10 +45,54 @@ async def get_subject(callback: types.CallbackQuery):
         chat_id=callback.message.chat.id, 
         subject_id=subject_id
     )
+    grades = await user_service.get_subject_grades(
+        chat_id=callback.message.chat.id, #type: ignore
+        subject_id=subject.id
+    )
+
+    cur_grade = 0
+    for grade in grades:
+        cur_grade += grade.grade1+grade.grade2
+
+    stat = ''
+
+    cur_mark = 'слишком мало баллов'
+
+    try:
+        need_to_passed = len(grades)*2*grades_to_marks_table[f'{subject.numerator}/{subject.denominator}'][TSM.passed]
+        stat += f'<b>Кол-во баллов на "Зачтено":</b> {need_to_passed}\n'
+        if cur_grade > need_to_passed:
+            cur_mark = 'зачтено'
+    except TypeError:
+        pass
+    try:
+        need_to_ok = len(grades)*2*grades_to_marks_table[f'{subject.numerator}/{subject.denominator}'][TSM.ok]
+        stat += f'<b>Кол-во баллов на "Удовлетворительно":</b> {need_to_ok}\n'
+        if cur_grade > need_to_ok:
+            cur_mark = 'удовлетворительно'
+    except TypeError:
+        pass
+    try:
+        need_to_good = len(grades)*2*grades_to_marks_table[f'{subject.numerator}/{subject.denominator}'][TSM.good]
+        stat += f'<b>Кол-во баллов на "Хорошо":</b> {need_to_good}\n'
+        if cur_grade > need_to_good:
+            cur_mark = 'хорошо'
+    except TypeError:
+        pass
+    try:
+        need_to_great = len(grades)*2*grades_to_marks_table[f'{subject.numerator}/{subject.denominator}'][TSM.great]
+        stat += f'<b>Кол-во баллов на "Отлично":</b> {need_to_great}\n'
+        if cur_grade > need_to_great:
+            cur_mark = 'отлично'
+    except TypeError:
+        pass
 
     answer = (
-        f'Предмет: {escape_html(subject.title)}\n'
-        f'Соотношение часов: {subject.numerator}/{subject.denominator}\n'
+        f'<b>Предмет:</b> <i>{escape_html(subject.title)}</i>\n'
+        f'<b>Соотношение часов:</b> <i>{subject.numerator}/{subject.denominator}</i>\n'
+        f'<b>Текущее кол-во баллов:</b> <i>{cur_grade}</i>\n'
+        f'<b>Текущая отметка:</b> <i>{cur_mark}</i>\n\n'
+        f'{stat}'
     )
 
     await callback.message.edit_text(answer, reply_markup=get_back_btn_kb(data='subjects'))
