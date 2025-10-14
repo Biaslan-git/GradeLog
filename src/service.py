@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError, NoResultFound
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
-from src.models import Subject, User
+from src.models import Grade, Subject, User
 from src.database import Session
 
 
@@ -103,4 +103,25 @@ class UserService:
                 raise ValueError('Subject does not exist.')
             except ValueError as e:
                 raise ValueError(str(e))
+
+    async def add_grade(
+        self, 
+        chat_id: int,
+        subject_id: int,
+        grade1: str,
+        grade2: int,
+    ) -> Grade:
+        user = await self.get_user(chat_id=chat_id)
+        grade = Grade(
+            user_id=user.id,
+            subject_id=subject_id,
+            grade1=grade1,
+            grade2=grade2
+        )
+
+        async with self.async_session() as session:
+            session.add(grade)
+            await session.commit()
+            await session.refresh(grade)
+            return grade
 
