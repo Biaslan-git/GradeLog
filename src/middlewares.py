@@ -6,6 +6,7 @@ from aiogram.fsm.context import FSMContext
 
 from src.config import settings
 from src.bot import bot
+from src.utils import escape_html
 
 def error_handler(func):
     @wraps(func)
@@ -19,7 +20,7 @@ def error_handler(func):
             error_message = f'Произошла ошибка:\n{message.chat.id}\n{func.__name__}: {error_message}'
 
             await message.answer(
-                f'{error_message}',
+                f'{escape_html(error_message)}',
                 reply_markup=types.InlineKeyboardMarkup(
                     inline_keyboard=[[
                         types.InlineKeyboardButton(
