@@ -2,7 +2,6 @@ from aiogram import Router, F, types
 from aiogram.filters import StateFilter
 from aiogram.fsm.context import FSMContext
 
-from pprint import pprint
 from src.keyboards import get_back_btn, get_back_btn_kb, get_user_subjects_btns
 from src.constants import grades_to_marks_table
 from src.enums import TraditionalSystemMarks as TSM
@@ -63,68 +62,43 @@ async def get_subject(callback: types.CallbackQuery, grades_page: int = 1):
         need_to_passed = len(grades)*2*grades_to_marks_table[f'{subject.numerator}/{subject.denominator}'][TSM.passed]
         stat += f'<b>Кол-во баллов на "Зачтено":</b> {need_to_passed}\n'
         if cur_grade > need_to_passed:
-            cur_mark = 'зачтено'
+            cur_mark = '<i>зачтено</i>'
     except TypeError:
         pass
     try:
         need_to_ok = len(grades)*2*grades_to_marks_table[f'{subject.numerator}/{subject.denominator}'][TSM.ok]
         stat += f'<b>Кол-во баллов на "Удовлетворительно":</b> {need_to_ok}\n'
         if cur_grade > need_to_ok:
-            cur_mark = 'удовлетворительно'
+            cur_mark = '<i>удовлетворительно</i>'
     except TypeError:
         pass
     try:
         need_to_good = len(grades)*2*grades_to_marks_table[f'{subject.numerator}/{subject.denominator}'][TSM.good]
         stat += f'<b>Кол-во баллов на "Хорошо":</b> {need_to_good}\n'
         if cur_grade > need_to_good:
-            cur_mark = 'хорошо'
+            cur_mark = '<i>хорошо</i>'
     except TypeError:
         pass
     try:
         need_to_great = len(grades)*2*grades_to_marks_table[f'{subject.numerator}/{subject.denominator}'][TSM.great]
         stat += f'<b>Кол-во баллов на "Отлично":</b> {need_to_great}\n'
         if cur_grade > need_to_great:
-            cur_mark = 'отлично'
+            cur_mark = '<i>отлично</i>'
     except TypeError:
         pass
 
     answer = (
         f'<b>Предмет:</b> <i>{escape_html(subject.title)}</i>\n'
         f'<b>Соотношение часов:</b> <i>{subject.numerator}/{subject.denominator}</i>\n'
+        f'<b>Текущее кол-во пар:</b> <i>{len(grades)}</i>\n'
         f'<b>Текущее кол-во баллов:</b> <i>{cur_grade}</i>\n'
         f'<b>Текущая отметка:</b> <i>{cur_mark}</i>\n\n'
         f'{stat}'
     )
 
-    grades_text = '\n\n<b>Ваши баллы:</b>\n'
-    grades_on_page, total_pages = await user_service.get_subject_grades_by_page(
-        chat_id=callback.message.chat.id, #type: ignore
-        subject_id=subject.id,
-        page=grades_page,
-        per_page=9
-    )
-
     btns = [
-        [types.InlineKeyboardButton(text=f'{grades_page}/{total_pages}', callback_data='mute')]
+        [types.InlineKeyboardButton(text='Показать баллы', callback_data=f'grades:{subject.id}')]
     ]
-
-    row = []
-    pprint(enumerate(grades_on_page, start=1))
-    for idx, grade in enumerate(grades_on_page, start=1):
-        grades_text += f'{idx}. {grade.grade1} {grade.grade2}\n'
-
-        button = types.InlineKeyboardButton(text=f'{idx}', callback_data=f'grade_{grade.id}')
-        row.append(button)  # Добавляем кнопку в строку
-
-        # Если 3 кнопки в строке, добавляем строку в клавиатуру
-        if idx % 3 == 0:
-            btns.append(row)  # Добавляем всю строку в клавиатуру
-            row = []  # Обнуляем строку
-
-    if row:
-        btns.append(row)
-
-    answer += grades_text
 
     btns.append(get_back_btn(data='subjects'))
     kb = types.InlineKeyboardMarkup(inline_keyboard=btns)
@@ -173,6 +147,13 @@ async def add_subject_name_and_coef(message: types.Message, state: FSMContext):
 
     await message.answer(answer, reply_markup=get_back_btn_kb())
     await state.clear()
+
+@router.callback_query(F.data.startswith('page_subject_'))
+@error_handler
+async def get_subject_with_page(callback: types.CallbackQuery):
+    page = int(callback.data.split('_')[-1])
+    return await get_subject(callback, page)
+
 
 @router.callback_query(F.data == 'delete_subject')
 @error_handler

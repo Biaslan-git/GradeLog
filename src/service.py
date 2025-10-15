@@ -107,6 +107,16 @@ class UserService:
             except ValueError as e:
                 raise ValueError(str(e))
 
+    async def get_grade(self, grade_id: int) -> Grade:
+        q = select(Grade).where(Grade.id == grade_id)
+        async with self.async_session() as session:
+            try:
+                result = await session.execute(q)
+                grade = result.scalar_one()
+                return grade
+            except ValueError:
+                raise ValueError('Grade does not exists.')
+
     async def add_grade(
         self, 
         chat_id: int,
@@ -127,7 +137,7 @@ class UserService:
             await session.commit()
             await session.refresh(grade)
             return grade
-    
+
     async def get_subject_grades(
         self,
         chat_id: int,
@@ -135,7 +145,7 @@ class UserService:
     ) -> Sequence[Grade]:
         user = await self.get_user(chat_id)
 
-        q = select(Grade).where((Grade.subject_id == subject_id) & (Grade.user_id == user.id))
+        q = select(Grade).where((Grade.subject_id == subject_id) & (Grade.user_id == user.id)).order_by(Grade.id.desc())
         async with self.async_session() as session:
             try:
                 result = await session.execute(q)
@@ -144,40 +154,23 @@ class UserService:
             except NoResultFound:
                 raise ValueError('User does not exists.')
 
-    async def get_subject_grades_by_page(
-        self,
-        chat_id: int, 
-        subject_id: int,
-        page: int,
-        per_page: int
-    ) -> tuple[Sequence[Grade], int]:
-        user = await self.get_user(chat_id)
-
-        # Запрос для получения оценок с пагинацией
-        grades_query = (
-            select(Grade)
-            .where((Grade.subject_id == subject_id) & (Grade.user_id == user.id))
-            .limit(per_page)
-            .offset((page - 1) * per_page)
-        )
-
-        # Запрос для подсчета общего количества оценок
-        count_query = select(func.count()).select_from(Grade).where((Grade.subject_id == subject_id) & (Grade.user_id == user.id))
-        
+    async def delete_grade(self, chat_id: int, grade_id: int) -> Grade:
+        q = select(Grade).where(Grade.id == grade_id)
         async with self.async_session() as session:
             try:
-                # Выполнение запроса для получения оценок
-                result = await session.execute(grades_query)
-                grades = result.scalars().all()
+                result = await session.execute(q)
+                grade = result.scalar_one()
+                if grade.user.chat_id != chat_id:
+                    raise ValueError('You do not have permission to access this resource.')
 
-                # Выполнение запроса для получения общего количества оценок
-                total_result = await session.execute(count_query)
-                total_grades = total_result.scalar()
-
-                # Расчет общего количества страниц
-                total_pages = (total_grades + per_page - 1) // per_page
-
-                return grades, total_pages
-
+                # Удаляем предмет
+                await session.delete(grade)
+                await session.commit()  # Сохраняем изменения в базе данных
+                
+                return grade  # Возвращаем удаленный объект
             except NoResultFound:
-                raise ValueError('User does not exists.')
+                raise ValueError('Grade does not exist.')
+            except ValueError as e:
+                raise ValueError(str(e))
+
+
