@@ -1,8 +1,11 @@
 from dataclasses import dataclass
-from sqlalchemy import select
+from sqlalchemy import select, func
 from sqlalchemy.exc import IntegrityError, NoResultFound
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
-from src.models import Subject, User
+
+from typing import Sequence
+
+from src.models import Grade, Subject, User
 from src.database import Session
 
 
@@ -103,4 +106,71 @@ class UserService:
                 raise ValueError('Subject does not exist.')
             except ValueError as e:
                 raise ValueError(str(e))
+
+    async def get_grade(self, grade_id: int) -> Grade:
+        q = select(Grade).where(Grade.id == grade_id)
+        async with self.async_session() as session:
+            try:
+                result = await session.execute(q)
+                grade = result.scalar_one()
+                return grade
+            except ValueError:
+                raise ValueError('Grade does not exists.')
+
+    async def add_grade(
+        self, 
+        chat_id: int,
+        subject_id: int,
+        grade1: str,
+        grade2: int,
+    ) -> Grade:
+        user = await self.get_user(chat_id=chat_id)
+        grade = Grade(
+            user_id=user.id,
+            subject_id=subject_id,
+            grade1=grade1,
+            grade2=grade2
+        )
+
+        async with self.async_session() as session:
+            session.add(grade)
+            await session.commit()
+            await session.refresh(grade)
+            return grade
+
+    async def get_subject_grades(
+        self,
+        chat_id: int,
+        subject_id: int,
+    ) -> Sequence[Grade]:
+        user = await self.get_user(chat_id)
+
+        q = select(Grade).where((Grade.subject_id == subject_id) & (Grade.user_id == user.id)).order_by(Grade.id.desc())
+        async with self.async_session() as session:
+            try:
+                result = await session.execute(q)
+                grades = result.scalars().all()
+                return grades
+            except NoResultFound:
+                raise ValueError('User does not exists.')
+
+    async def delete_grade(self, chat_id: int, grade_id: int) -> Grade:
+        q = select(Grade).where(Grade.id == grade_id)
+        async with self.async_session() as session:
+            try:
+                result = await session.execute(q)
+                grade = result.scalar_one()
+                if grade.user.chat_id != chat_id:
+                    raise ValueError('You do not have permission to access this resource.')
+
+                # Удаляем предмет
+                await session.delete(grade)
+                await session.commit()  # Сохраняем изменения в базе данных
+                
+                return grade  # Возвращаем удаленный объект
+            except NoResultFound:
+                raise ValueError('Grade does not exist.')
+            except ValueError as e:
+                raise ValueError(str(e))
+
 

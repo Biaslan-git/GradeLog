@@ -4,8 +4,6 @@ import traceback
 from aiogram import BaseMiddleware, types
 from aiogram.fsm.context import FSMContext
 
-from src.config import settings
-from src.bot import bot
 
 def error_handler(func):
     @wraps(func)
@@ -14,11 +12,12 @@ def error_handler(func):
             await func(message_or_callback, *args, **kwargs)  # Без return
         except Exception as e:
             message = message_or_callback if type(message_or_callback) == types.Message else message_or_callback.message
+            answer_func = message.answer if type(message_or_callback) == types.Message else message_or_callback.message.edit_text
             error_message = traceback.format_exc(limit=2)
 
             error_message = f'Произошла ошибка:\n{message.chat.id}\n{func.__name__}: {error_message}'
 
-            await message.answer(
+            await answer_func(
                 f'{error_message}',
                 reply_markup=types.InlineKeyboardMarkup(
                     inline_keyboard=[[
@@ -27,7 +26,8 @@ def error_handler(func):
                             callback_data=f'report'
                         )
                     ]]
-                )
+                ),
+                parse_mode=None
             )
     return wrapper
 

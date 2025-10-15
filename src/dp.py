@@ -6,4 +6,4 @@ from src.middlewares import ClearStateOnBackMiddleware, DeleteOldMessageOnCallba
 dp = Dispatcher()
 
 dp.callback_query.middleware(ClearStateOnBackMiddleware())
-dp.callback_query.middleware(DeleteOldMessageOnCallbackMiddleware())
+# dp.callback_query.middleware(DeleteOldMessageOnCallbackMiddleware())
