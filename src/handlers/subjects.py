@@ -97,7 +97,8 @@ async def get_subject(callback: types.CallbackQuery, grades_page: int = 1):
     )
 
     btns = [
-        [types.InlineKeyboardButton(text='Показать баллы', callback_data=f'grades:{subject.id}')]
+        [types.InlineKeyboardButton(text='Показать баллы', callback_data=f'grades:{subject.id}')],
+        [types.InlineKeyboardButton(text='Добавить баллы', callback_data=f'add_grades_{subject.id}')]
     ]
 
     btns.append(get_back_btn(data='subjects'))
