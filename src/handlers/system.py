@@ -15,3 +15,7 @@ async def process_report(callback: types.CallbackQuery):
     )
 
     await main_menu(callback)
+
+@router.callback_query(F.data == 'mute')
+async def mute(callback: types.CallbackQuery):
+    await callback.answer("Эта кнопка не кликабельна!")

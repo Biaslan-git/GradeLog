@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from sqlalchemy import select
+from sqlalchemy import select, func
 from sqlalchemy.exc import IntegrityError, NoResultFound
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
@@ -141,5 +141,43 @@ class UserService:
                 result = await session.execute(q)
                 grades = result.scalars().all()
                 return grades
+            except NoResultFound:
+                raise ValueError('User does not exists.')
+
+    async def get_subject_grades_by_page(
+        self,
+        chat_id: int, 
+        subject_id: int,
+        page: int,
+        per_page: int
+    ) -> tuple[Sequence[Grade], int]:
+        user = await self.get_user(chat_id)
+
+        # Запрос для получения оценок с пагинацией
+        grades_query = (
+            select(Grade)
+            .where((Grade.subject_id == subject_id) & (Grade.user_id == user.id))
+            .limit(per_page)
+            .offset((page - 1) * per_page)
+        )
+
+        # Запрос для подсчета общего количества оценок
+        count_query = select(func.count()).select_from(Grade).where((Grade.subject_id == subject_id) & (Grade.user_id == user.id))
+        
+        async with self.async_session() as session:
+            try:
+                # Выполнение запроса для получения оценок
+                result = await session.execute(grades_query)
+                grades = result.scalars().all()
+
+                # Выполнение запроса для получения общего количества оценок
+                total_result = await session.execute(count_query)
+                total_grades = total_result.scalar()
+
+                # Расчет общего количества страниц
+                total_pages = (total_grades + per_page - 1) // per_page
+
+                return grades, total_pages
+
             except NoResultFound:
                 raise ValueError('User does not exists.')
