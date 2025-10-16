@@ -50,39 +50,44 @@ async def get_subject(callback: types.CallbackQuery, grades_page: int = 1):
         subject_id=subject.id
     )
 
-    cur_grade = 0
+    cur_grade_sum = 0
     for grade in grades:
-        cur_grade += grade.grade1+grade.grade2
+        cur_grade_sum += grade.grade1+grade.grade2
 
     stat = ''
 
     cur_mark = 'слишком мало баллов'
 
-    try:
-        need_to_passed = len(grades)*2*grades_to_marks_table[f'{subject.numerator}/{subject.denominator}'][TSM.passed]
-        stat += f'<b>Кол-во баллов на "Зачтено":</b> {need_to_passed}\n'
-        if cur_grade > need_to_passed:
-            cur_mark = '<i>зачтено</i>'
-    except TypeError:
-        pass
+    print(f'{len(grades)=}')
+    print(f'{len(grades)*2=}')
+    print(f'{grades_to_marks_table[f'{subject.numerator}/{subject.denominator}'][TSM.passed]=}')
+    print(f'{len(grades)*2*grades_to_marks_table[f'{subject.numerator}/{subject.denominator}'][TSM.passed]=}')
+
     try:
         need_to_ok = len(grades)*2*grades_to_marks_table[f'{subject.numerator}/{subject.denominator}'][TSM.ok]
         stat += f'<b>Кол-во баллов на "Удовлетворительно":</b> {need_to_ok}\n'
-        if cur_grade > need_to_ok:
+        if cur_grade_sum > need_to_ok:
             cur_mark = '<i>удовлетворительно</i>'
+    except TypeError:
+        pass
+    try:
+        need_to_passed = len(grades)*2*grades_to_marks_table[f'{subject.numerator}/{subject.denominator}'][TSM.passed]
+        stat += f'<b>Кол-во баллов на "Зачтено":</b> {need_to_passed}\n'
+        if cur_grade_sum > need_to_passed:
+            cur_mark = '<i>зачтено</i>'
     except TypeError:
         pass
     try:
         need_to_good = len(grades)*2*grades_to_marks_table[f'{subject.numerator}/{subject.denominator}'][TSM.good]
         stat += f'<b>Кол-во баллов на "Хорошо":</b> {need_to_good}\n'
-        if cur_grade > need_to_good:
+        if cur_grade_sum > need_to_good:
             cur_mark = '<i>хорошо</i>'
     except TypeError:
         pass
     try:
         need_to_great = len(grades)*2*grades_to_marks_table[f'{subject.numerator}/{subject.denominator}'][TSM.great]
         stat += f'<b>Кол-во баллов на "Отлично":</b> {need_to_great}\n'
-        if cur_grade > need_to_great:
+        if cur_grade_sum > need_to_great:
             cur_mark = '<i>отлично</i>'
     except TypeError:
         pass
@@ -91,7 +96,7 @@ async def get_subject(callback: types.CallbackQuery, grades_page: int = 1):
         f'<b>Предмет:</b> <i>{escape_html(subject.title)}</i>\n'
         f'<b>Соотношение часов:</b> <i>{subject.numerator}/{subject.denominator}</i>\n'
         f'<b>Текущее кол-во пар:</b> <i>{len(grades)}</i>\n'
-        f'<b>Текущее кол-во баллов:</b> <i>{cur_grade}</i>\n'
+        f'<b>Текущее кол-во баллов:</b> <i>{cur_grade_sum}</i>\n'
         f'<b>Текущая отметка:</b> <i>{cur_mark}</i>\n\n'
         f'{stat}'
     )
