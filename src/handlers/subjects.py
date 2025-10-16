@@ -9,7 +9,7 @@ from src.service import UserService
 from src.middlewares import error_handler
 from src.states import AddSubjectState
 from src.texts import subjects_list_is_null, add_subject_instruction, answer_on_format_error
-from src.utils import escape_html
+from src.utils import escape_html, calculate_subject_final_grade
 
 
 router = Router()
@@ -57,11 +57,6 @@ async def get_subject(callback: types.CallbackQuery, grades_page: int = 1):
     stat = ''
 
     cur_mark = 'слишком мало баллов'
-
-    print(f'{len(grades)=}')
-    print(f'{len(grades)*2=}')
-    print(f'{grades_to_marks_table[f'{subject.numerator}/{subject.denominator}'][TSM.passed]=}')
-    print(f'{len(grades)*2*grades_to_marks_table[f'{subject.numerator}/{subject.denominator}'][TSM.passed]=}')
 
     try:
         need_to_ok = len(grades)*2*grades_to_marks_table[f'{subject.numerator}/{subject.denominator}'][TSM.ok]
