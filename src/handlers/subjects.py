@@ -9,7 +9,7 @@ from src.service import UserService
 from src.middlewares import error_handler
 from src.states import AddSubjectState
 from src.texts import subjects_list_is_null, add_subject_instruction, answer_on_format_error
-from src.utils import escape_html, calculate_subject_final_grade
+from src.utils import escape_html
 
 
 router = Router()
