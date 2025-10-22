@@ -174,3 +174,4 @@ class UserService:
                 raise ValueError(str(e))
 
 
+user_service = UserService()

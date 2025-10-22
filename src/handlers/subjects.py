@@ -5,7 +5,7 @@ from aiogram.fsm.context import FSMContext
 from src.keyboards import get_back_btn, get_back_btn_kb, get_user_subjects_btns
 from src.constants import grades_to_marks_table
 from src.enums import TraditionalSystemMarks as TSM
-from src.service import UserService
+from src.service import user_service
 from src.middlewares import error_handler
 from src.states import AddSubjectState
 from src.texts import subjects_list_is_null, add_subject_instruction, answer_on_format_error
@@ -17,7 +17,6 @@ router = Router()
 @router.callback_query(F.data == 'subjects')
 @error_handler
 async def subjects(callback: types.CallbackQuery):
-    user_service = UserService()
     subjects = await user_service.get_user_subjects(callback.message.chat.id)
 
     buttons = await get_user_subjects_btns(
@@ -39,7 +38,6 @@ async def subjects(callback: types.CallbackQuery):
 @router.callback_query(F.data.startswith('subject_'))
 @error_handler
 async def get_subject(callback: types.CallbackQuery, subject_id: int | None = None):
-    user_service = UserService()
     subject_id = int(callback.data.split('_')[-1]) if subject_id is None else subject_id
     subject = await user_service.get_subject(
         chat_id=callback.message.chat.id, 
@@ -128,7 +126,6 @@ async def add_subject_name_and_coef(message: types.Message, state: FSMContext):
         return
 
     answer = ''
-    user_service = UserService()
     for subject_data in subjects:
         subject = await user_service.add_subject(
             chat_id=message.chat.id,
@@ -176,7 +173,6 @@ async def delete_subject_menu(callback: types.CallbackQuery, msg_title: str = 'Ð
 @error_handler
 async def delete_subject(callback: types.CallbackQuery):
     subject_id = int(callback.data.split('_')[-1])
-    user_service = UserService()
 
     deleted_subject = await user_service.delete_subject(callback.message.chat.id, subject_id)
 

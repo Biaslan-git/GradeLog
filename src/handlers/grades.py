@@ -3,7 +3,7 @@ from aiogram.filters import StateFilter
 from aiogram.fsm.context import FSMContext
 
 from src.handlers.subjects import get_subject
-from src.service import UserService
+from src.service import user_service
 from src.middlewares import error_handler
 from src.keyboards import get_back_btn, get_back_btn_kb
 from src.texts import answer_on_format_error, add_grades_instruction
@@ -17,8 +17,6 @@ router = Router()
 @error_handler
 async def subject_grades(callback: types.CallbackQuery):
     subject_id = int(callback.data.removeprefix('grades:'))
-
-    user_service = UserService()
 
     subject = await user_service.get_subject(callback.message.chat.id, subject_id)
     grades = await user_service.get_subject_grades(
@@ -58,7 +56,6 @@ async def subject_grades(callback: types.CallbackQuery):
 @error_handler
 async def grade_detail(callback: types.CallbackQuery):
     grade_id = int(callback.data.removeprefix('grade:'))
-    user_service = UserService()
     try:
         grade = await user_service.get_grade(grade_id)
     except ValueError:
@@ -82,7 +79,6 @@ async def grade_detail(callback: types.CallbackQuery):
 @error_handler
 async def delete_grade(callback: types.CallbackQuery):
     grade_id = int(callback.data.removeprefix('delete_grade:'))
-    user_service = UserService()
     try:
         grade = await user_service.delete_grade(callback.message.chat.id, grade_id)
     except ValueError:
@@ -100,7 +96,7 @@ async def add_grades_enter_grades(callback: types.CallbackQuery, state: FSMConte
     subject_id = int(callback.data.removeprefix('add_grades_'))
     await state.update_data(subject_id=subject_id)
 
-    subject = await UserService().get_subject(callback.message.chat.id, subject_id)
+    subject = await user_service.get_subject(callback.message.chat.id, subject_id)
 
     await callback.message.edit_text(
         f'<b>Предмет:</b> <i>{escape_html(subject.title)}</i>\n\n'+add_grades_instruction, 
@@ -125,7 +121,6 @@ async def add_grades_to_subject_send_grades(message: types.Message, state: FSMCo
         )
         return
 
-    user_service = UserService()
     subject = await user_service.get_subject(message.chat.id, subject_id)
     answer = ''
     for grade_data in grades:
