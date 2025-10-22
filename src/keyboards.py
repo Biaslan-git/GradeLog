@@ -1,6 +1,6 @@
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
-from src.service import UserService
+from src.service import user_service
 
 
 main_kb_btns = [
@@ -41,7 +41,6 @@ async def get_user_subjects_btns(
     item_title_prefix: str = '',
     item_title_suffix: str = ''
 ) -> list[list[InlineKeyboardButton]]:
-    user_service = UserService()
     subjects = await user_service.get_user_subjects(chat_id)
     
     buttons = []
