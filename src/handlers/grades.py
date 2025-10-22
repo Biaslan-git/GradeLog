@@ -5,8 +5,8 @@ from aiogram.fsm.context import FSMContext
 from src.handlers.subjects import get_subject
 from src.service import UserService
 from src.middlewares import error_handler
-from src.keyboards import get_back_btn, get_back_btn_kb, get_user_subjects_btns
-from src.texts import subjects_list_is_null, answer_on_format_error, add_grades_instruction
+from src.keyboards import get_back_btn, get_back_btn_kb
+from src.texts import answer_on_format_error, add_grades_instruction
 from src.states import AddGradesState
 from src.utils import escape_html
 
