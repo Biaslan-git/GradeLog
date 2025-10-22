@@ -38,9 +38,9 @@ async def subjects(callback: types.CallbackQuery):
 
 @router.callback_query(F.data.startswith('subject_'))
 @error_handler
-async def get_subject(callback: types.CallbackQuery, grades_page: int = 1):
+async def get_subject(callback: types.CallbackQuery, subject_id: int | None = None):
     user_service = UserService()
-    subject_id = int(callback.data.split('_')[-1]) # type: ignore
+    subject_id = int(callback.data.split('_')[-1]) if subject_id is None else subject_id
     subject = await user_service.get_subject(
         chat_id=callback.message.chat.id, 
         subject_id=subject_id

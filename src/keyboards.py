@@ -8,7 +8,7 @@ from src.service import UserService
 main_kb_btns = [
     [InlineKeyboardButton(text='Мои предметы', callback_data='subjects')],
     [InlineKeyboardButton(text='Добавить предмет', callback_data='add_subject')],
-    [InlineKeyboardButton(text='Добавить баллы', callback_data='add_grades')],
+    # [InlineKeyboardButton(text='Добавить баллы', callback_data='add_grades')],
     [InlineKeyboardButton(text='Удалить предмет', callback_data='delete_subject')],
 ]
 main_kb = InlineKeyboardMarkup(inline_keyboard=main_kb_btns)
