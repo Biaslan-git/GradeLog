@@ -2,10 +2,11 @@ from aiogram import Router, F, types
 from aiogram.filters import StateFilter
 from aiogram.fsm.context import FSMContext
 
-from src.service import UserService
+from src.handlers.subjects import get_subject
+from src.service import user_service
 from src.middlewares import error_handler
-from src.keyboards import get_back_btn, get_back_btn_kb, get_user_subjects_btns
-from src.texts import subjects_list_is_null, answer_on_format_error, add_grades_instruction
+from src.keyboards import get_back_btn, get_back_btn_kb
+from src.texts import answer_on_format_error, add_grades_instruction
 from src.states import AddGradesState
 from src.utils import escape_html
 
@@ -16,8 +17,6 @@ router = Router()
 @error_handler
 async def subject_grades(callback: types.CallbackQuery):
     subject_id = int(callback.data.removeprefix('grades:'))
-
-    user_service = UserService()
 
     subject = await user_service.get_subject(callback.message.chat.id, subject_id)
     grades = await user_service.get_subject_grades(
@@ -57,7 +56,6 @@ async def subject_grades(callback: types.CallbackQuery):
 @error_handler
 async def grade_detail(callback: types.CallbackQuery):
     grade_id = int(callback.data.removeprefix('grade:'))
-    user_service = UserService()
     try:
         grade = await user_service.get_grade(grade_id)
     except ValueError:
@@ -81,7 +79,6 @@ async def grade_detail(callback: types.CallbackQuery):
 @error_handler
 async def delete_grade(callback: types.CallbackQuery):
     grade_id = int(callback.data.removeprefix('delete_grade:'))
-    user_service = UserService()
     try:
         grade = await user_service.delete_grade(callback.message.chat.id, grade_id)
     except ValueError:
@@ -93,45 +90,24 @@ async def delete_grade(callback: types.CallbackQuery):
         reply_markup=get_back_btn_kb(data=f'grades:{grade.subject.id}')
     )
 
-
-@router.callback_query(F.data == 'add_grades')
-@error_handler
-async def add_grades(callback: types.CallbackQuery):
-    user_service = UserService()
-    subjects = await user_service.get_user_subjects(callback.message.chat.id)
-
-    buttons = await get_user_subjects_btns(
-        chat_id=callback.message.chat.id,
-        item_id_prefix='add_grades_'
-    )
-
-    if subjects:
-        answer_text = '📚 Выбери предмет для добавления баллов:'
-        buttons.append(get_back_btn())
-        keyboard = types.InlineKeyboardMarkup(inline_keyboard=buttons)
-        await callback.message.edit_text(answer_text, reply_markup=keyboard)
-    else:
-        await callback.message.edit_text(
-            subjects_list_is_null, 
-            reply_markup=get_back_btn_kb()
-        )
-
 @router.callback_query(StateFilter(None), F.data.startswith('add_grades_'))
 @error_handler
-async def add_grades_to_subject(callback: types.CallbackQuery, state: FSMContext):
-    try:
-        subject_id = int(callback.data.removeprefix('add_grades_'))
-        await state.update_data(subject_id=subject_id)
-    except:
-        await callback.message.edit_text(answer_on_format_error, reply_markup=get_back_btn_kb(data="add_grades"))
-        return
+async def add_grades_enter_grades(callback: types.CallbackQuery, state: FSMContext):
+    subject_id = int(callback.data.removeprefix('add_grades_'))
+    await state.update_data(subject_id=subject_id)
 
-    await callback.message.edit_text(add_grades_instruction, reply_markup=get_back_btn_kb(data="add_grades"))
+    subject = await user_service.get_subject(callback.message.chat.id, subject_id)
+
+    await callback.message.edit_text(
+        f'<b>Предмет:</b> <i>{escape_html(subject.title)}</i>\n\n'+add_grades_instruction, 
+        reply_markup=get_back_btn_kb(data=f"add_grades_back_to_subject:{subject_id}"))
     await state.set_state(AddGradesState.grades)
 
 @router.message(AddGradesState.grades)
 @error_handler
 async def add_grades_to_subject_send_grades(message: types.Message, state: FSMContext):
+    state_data = await state.get_data()
+    subject_id = state_data['subject_id']
     grades = []
     try:
         for grade_text in message.text.split('\n'):
@@ -139,12 +115,13 @@ async def add_grades_to_subject_send_grades(message: types.Message, state: FSMCo
             grade1, grade2 = map(int, grade_text.split()) # type: ignore
             grades.append([grade1, grade2])
     except ValueError:
-        await message.answer(answer_on_format_error, reply_markup=get_back_btn_kb())
+        await message.answer(
+            answer_on_format_error, 
+            reply_markup=get_back_btn_kb(data=f"add_grades_back_to_subject:{subject_id}")
+        )
         return
 
-    user_service = UserService()
-    state_data = await state.get_data()
-    subject = await user_service.get_subject(message.chat.id, state_data['subject_id'])
+    subject = await user_service.get_subject(message.chat.id, subject_id)
     answer = ''
     for grade_data in grades:
         grade = await user_service.add_grade(
@@ -158,14 +135,24 @@ async def add_grades_to_subject_send_grades(message: types.Message, state: FSMCo
     if grades:
         answer = f'Предмет: <b>{escape_html(subject.title)}</b>\nДобавленные баллы:\n' + answer
     else:
-        await message.answer(answer_on_format_error, reply_markup=get_back_btn_kb(data='add_grades'))
+        await message.answer(
+            answer_on_format_error, 
+            reply_markup=get_back_btn_kb(data=f"add_grades_back_to_subject:{subject_id}")
+        )
         return
 
     kb_btns = [
         [types.InlineKeyboardButton(text=subject.title, callback_data=f'subject_{subject.id}')],
-        get_back_btn(data='add_grades')
+        get_back_btn(data='subjects', text='Мои предметы')
     ]
     kb = types.InlineKeyboardMarkup(inline_keyboard=kb_btns)
 
     await message.answer(answer, reply_markup=kb)
     await state.clear()
+
+@router.callback_query(AddGradesState.grades, F.data.startswith('add_grades_back_to_subject'))
+@error_handler
+async def add_grades_enter_grade_back_btn(callback: types.CallbackQuery, state: FSMContext):
+    await state.clear()
+    subject_id = int(callback.data.removeprefix('add_grades_back_to_subject:'))
+    await get_subject(callback, subject_id)

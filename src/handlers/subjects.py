@@ -3,13 +3,11 @@ from aiogram.filters import StateFilter
 from aiogram.fsm.context import FSMContext
 
 from src.keyboards import get_back_btn, get_back_btn_kb, get_user_subjects_btns
-from src.constants import grades_to_marks_table
-from src.enums import TraditionalSystemMarks as TSM
-from src.service import UserService
+from src.service import user_service
 from src.middlewares import error_handler
 from src.states import AddSubjectState
 from src.texts import subjects_list_is_null, add_subject_instruction, answer_on_format_error
-from src.utils import escape_html
+from src.utils import escape_html, get_subject_icon, get_subject_stat
 
 
 router = Router()
@@ -17,13 +15,16 @@ router = Router()
 @router.callback_query(F.data == 'subjects')
 @error_handler
 async def subjects(callback: types.CallbackQuery):
-    user_service = UserService()
     subjects = await user_service.get_user_subjects(callback.message.chat.id)
 
-    buttons = await get_user_subjects_btns(
-        chat_id=callback.message.chat.id,
-        item_id_prefix='subject_'
-    )
+    buttons = []
+    for subject in subjects:
+        subject_grades = subject.grades
+        mark_icon = get_subject_icon(subject, subject_grades)
+        buttons.append([types.InlineKeyboardButton(
+            text=f'{subject.title} {mark_icon}',
+            callback_data=f'subject_{subject.id}'
+        )])
     
     if subjects:
         answer_text = '📚 Твои предметы:'
@@ -38,9 +39,8 @@ async def subjects(callback: types.CallbackQuery):
 
 @router.callback_query(F.data.startswith('subject_'))
 @error_handler
-async def get_subject(callback: types.CallbackQuery, grades_page: int = 1):
-    user_service = UserService()
-    subject_id = int(callback.data.split('_')[-1]) # type: ignore
+async def get_subject(callback: types.CallbackQuery, subject_id: int | None = None):
+    subject_id = int(callback.data.split('_')[-1]) if subject_id is None else subject_id
     subject = await user_service.get_subject(
         chat_id=callback.message.chat.id, 
         subject_id=subject_id
@@ -50,55 +50,23 @@ async def get_subject(callback: types.CallbackQuery, grades_page: int = 1):
         subject_id=subject.id
     )
 
-    cur_grade_sum = 0
-    for grade in grades:
-        cur_grade_sum += grade.grade1+grade.grade2
+    subject_stat = get_subject_stat(subject, grades)
 
-    stat = ''
-
-    cur_mark = 'слишком мало баллов'
-
-    print(f'{len(grades)=}')
-    print(f'{len(grades)*2=}')
-    print(f'{grades_to_marks_table[f'{subject.numerator}/{subject.denominator}'][TSM.passed]=}')
-    print(f'{len(grades)*2*grades_to_marks_table[f'{subject.numerator}/{subject.denominator}'][TSM.passed]=}')
-
-    try:
-        need_to_ok = len(grades)*2*grades_to_marks_table[f'{subject.numerator}/{subject.denominator}'][TSM.ok]
-        stat += f'<b>Кол-во баллов на "Удовлетворительно":</b> {need_to_ok}\n'
-        if cur_grade_sum > need_to_ok:
-            cur_mark = '<i>удовлетворительно</i>'
-    except TypeError:
-        pass
-    try:
-        need_to_passed = len(grades)*2*grades_to_marks_table[f'{subject.numerator}/{subject.denominator}'][TSM.passed]
-        stat += f'<b>Кол-во баллов на "Зачтено":</b> {need_to_passed}\n'
-        if cur_grade_sum > need_to_passed:
-            cur_mark = '<i>зачтено</i>'
-    except TypeError:
-        pass
-    try:
-        need_to_good = len(grades)*2*grades_to_marks_table[f'{subject.numerator}/{subject.denominator}'][TSM.good]
-        stat += f'<b>Кол-во баллов на "Хорошо":</b> {need_to_good}\n'
-        if cur_grade_sum > need_to_good:
-            cur_mark = '<i>хорошо</i>'
-    except TypeError:
-        pass
-    try:
-        need_to_great = len(grades)*2*grades_to_marks_table[f'{subject.numerator}/{subject.denominator}'][TSM.great]
-        stat += f'<b>Кол-во баллов на "Отлично":</b> {need_to_great}\n'
-        if cur_grade_sum > need_to_great:
-            cur_mark = '<i>отлично</i>'
-    except TypeError:
-        pass
-
+    stat_text = (
+        '<b>Шкала оценивания</b>\n'
+        f'<b>Удовлетворительно</b>: <i> {f'😐 {subject_stat.need_for_ok}' or '-'}</i>\n'
+        f'<b>Зачтено</b>: <i>{f'🙂 {subject_stat.need_for_passed}' or '-'}</i>\n'
+        f'<b>Хорошо</b>: <i>{f'😁 {subject_stat.need_for_good}' or '-'}</i>\n'
+        f'<b>Отлично</b>: <i>{f'😎 {subject_stat.need_for_great}' or '-'}</i>\n'
+    )
+    
     answer = (
         f'<b>Предмет:</b> <i>{escape_html(subject.title)}</i>\n'
         f'<b>Соотношение часов:</b> <i>{subject.numerator}/{subject.denominator}</i>\n'
-        f'<b>Текущее кол-во пар:</b> <i>{len(grades)}</i>\n'
-        f'<b>Текущее кол-во баллов:</b> <i>{cur_grade_sum}</i>\n'
-        f'<b>Текущая отметка:</b> <i>{cur_mark}</i>\n\n'
-        f'{stat}'
+        f'<b>Текущее кол-во пар:</b> <i>{subject_stat.cur_classes_count}</i>\n'
+        f'<b>Текущее кол-во баллов:</b> <i>{subject_stat.cur_grades_sum}</i>\n'
+        f'<b>Текущая отметка:</b> <i>{subject_stat.cur_mark_with_icon}</i>\n\n'
+        f'{stat_text}'
     )
 
     btns = [
@@ -110,7 +78,6 @@ async def get_subject(callback: types.CallbackQuery, grades_page: int = 1):
     kb = types.InlineKeyboardMarkup(inline_keyboard=btns)
 
     await callback.message.edit_text(answer, reply_markup=kb)
-    await callback.answer()
 
 @router.callback_query(StateFilter(None), F.data == 'add_subject')
 @error_handler
@@ -133,7 +100,6 @@ async def add_subject_name_and_coef(message: types.Message, state: FSMContext):
         return
 
     answer = ''
-    user_service = UserService()
     for subject_data in subjects:
         subject = await user_service.add_subject(
             chat_id=message.chat.id,
@@ -181,7 +147,6 @@ async def delete_subject_menu(callback: types.CallbackQuery, msg_title: str = '�
 @error_handler
 async def delete_subject(callback: types.CallbackQuery):
     subject_id = int(callback.data.split('_')[-1])
-    user_service = UserService()
 
     deleted_subject = await user_service.delete_subject(callback.message.chat.id, subject_id)
 
