@@ -110,9 +110,10 @@ async def add_grades_to_subject_send_grades(message: types.Message, state: FSMCo
     subject_id = state_data['subject_id']
     grades = []
     try:
-        for grade_text in message.text.split('\n'):
-            grade_text = grade_text.strip()
-            grade1, grade2 = map(int, grade_text.split()) # type: ignore
+        for row in message.text.split('\n'):
+            row = row.strip()
+            row_splt = row.split()
+            grade1, grade2 = map(int, row_splt) if len(row_splt) == 2 else row # type: ignore
             grades.append([grade1, grade2])
     except ValueError:
         await message.answer(
