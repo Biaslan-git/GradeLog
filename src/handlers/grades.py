@@ -126,7 +126,11 @@ async def add_grades_to_subject(callback: types.CallbackQuery, state: FSMContext
         await callback.message.edit_text(answer_on_format_error, reply_markup=get_back_btn_kb(data="add_grades"))
         return
 
-    await callback.message.edit_text(add_grades_instruction, reply_markup=get_back_btn_kb(data="add_grades"))
+    subject = await UserService().get_subject(callback.message.chat.id, subject_id)
+
+    await callback.message.edit_text(
+        f'<b>Предмет:</b> <i>{escape_html(subject.title)}</i>\n\n'+add_grades_instruction, 
+        reply_markup=get_back_btn_kb(data="add_grades"))
     await state.set_state(AddGradesState.grades)
 
 @router.message(AddGradesState.grades)
@@ -163,7 +167,7 @@ async def add_grades_to_subject_send_grades(message: types.Message, state: FSMCo
 
     kb_btns = [
         [types.InlineKeyboardButton(text=subject.title, callback_data=f'subject_{subject.id}')],
-        get_back_btn(data='add_grades')
+        get_back_btn(data='subjects', text='Мои предметы')
     ]
     kb = types.InlineKeyboardMarkup(inline_keyboard=kb_btns)
 
