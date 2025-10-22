@@ -9,6 +9,8 @@ from src.states import AddSubjectState
 from src.texts import subjects_list_is_null, add_subject_instruction, answer_on_format_error
 from src.utils import escape_html, get_subject_icon, get_subject_stat
 
+import re
+
 
 router = Router()
 
@@ -89,11 +91,17 @@ async def add_subject(callback: types.CallbackQuery, state: FSMContext):
 @error_handler
 async def add_subject_name_and_coef(message: types.Message, state: FSMContext):
     subjects = []
+    forbidden_symbols_pattern = re.compile(r'[<>("&\']')  # Запрещенные символы без '/'
+
     try:
         for subject_text in message.text.split('\n'):
             subject_text = subject_text.strip()
-            title = subject_text[:-3] # type: ignore
-            numerator, denominator = map(int, subject_text[-3:].split('/')) # type: ignore
+            if forbidden_symbols_pattern.search(subject_text):  # Проверка на запрещенные символы
+                await message.answer("Имя предмета содержит запрещенные символы!", reply_markup=get_back_btn_kb())
+                return
+
+            title = subject_text[:-3]  # type: ignore
+            numerator, denominator = map(int, subject_text[-3:].split('/'))  # type: ignore
             subjects.append([title, numerator, denominator])
     except ValueError:
         await message.answer(answer_on_format_error, reply_markup=get_back_btn_kb())
