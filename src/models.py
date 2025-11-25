@@ -1,7 +1,19 @@
-from sqlalchemy import ForeignKey, UniqueConstraint
+from sqlalchemy import ForeignKey, UniqueConstraint, Enum
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from src.database import Base
+import enum
 
+
+class SubjectType(enum.Enum):
+    EXAM = "Экзамен"
+    CREDIT = "Зачет"
+    
+    def next(self):
+        members = list(self.__class__)
+        index = members.index(self) + 1
+        if index >= len(members):
+            index = 0  # зацикливание
+        return members[index]
 
 class User(Base):
     __tablename__ = 'users'
@@ -30,6 +42,11 @@ class Subject(Base):
     title: Mapped[str] = mapped_column(nullable=False)
     numerator: Mapped[int] = mapped_column(nullable=False)
     denominator: Mapped[int] = mapped_column(nullable=False)
+
+    subject_type: Mapped[SubjectType] = mapped_column(
+        Enum(SubjectType), 
+        default=SubjectType.CREDIT
+    )
 
     user_id: Mapped[int] = mapped_column(ForeignKey('users.id'), nullable=False)
     user: Mapped['User'] = relationship(
