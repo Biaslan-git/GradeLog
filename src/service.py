@@ -45,7 +45,12 @@ class UserService:
             try:
                 result = await session.execute(q)
                 user = result.scalar_one()
-                return list(user.subjects)
+                sorted_subjects = sorted(
+                    user.subjects, 
+                    key=lambda subject: subject.subject_type.name, 
+                    reverse=True
+                )
+                return sorted_subjects
             except NoResultFound:
                 raise ValueError('User does not exists.')
 
