@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from typing import Sequence
 
-from src.models import Grade, Subject, User
+from src.models import Grade, Subject, SubjectType, User
 from src.database import Session
 
 
@@ -62,6 +62,19 @@ class UserService:
                 raise ValueError('User does not exists.')
             except ValueError:
                 raise ValueError('You do not have permission to access this resource')
+
+    async def change_subject_type(self, chat_id: int, subject_id: int, new_type: SubjectType) -> Subject:
+        subject = await self.get_subject(chat_id, subject_id)
+        async with self.async_session() as session:
+            try:
+                subject = await session.merge(subject)
+                subject.subject_type = new_type
+                await session.commit()
+                await session.refresh(subject)
+                return subject
+            except Exception as e:
+                await session.rollback()
+                raise ValueError(f"Failed to change subject type: {str(e)}")
 
     async def add_subject(
         self, 

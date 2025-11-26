@@ -2,6 +2,7 @@ from aiogram import Router, F, types
 from aiogram.filters import StateFilter
 from aiogram.fsm.context import FSMContext
 
+from src.models import SubjectType
 from src.keyboards import get_back_btn, get_back_btn_kb, get_user_subjects_btns
 from src.service import user_service
 from src.middlewares import error_handler
@@ -72,6 +73,7 @@ async def get_subject(callback: types.CallbackQuery, subject_id: int | None = No
     )
 
     btns = [
+        [types.InlineKeyboardButton(text=f'Тип: {subject.subject_type.value}', callback_data=f'switch_subject_type:{subject.id}')],
         [types.InlineKeyboardButton(text='Показать баллы', callback_data=f'grades:{subject.id}')],
         [types.InlineKeyboardButton(text='Добавить баллы', callback_data=f'add_grades_{subject.id}')]
     ]
@@ -80,6 +82,18 @@ async def get_subject(callback: types.CallbackQuery, subject_id: int | None = No
     kb = types.InlineKeyboardMarkup(inline_keyboard=btns)
 
     await callback.message.edit_text(answer, reply_markup=kb)
+
+@router.callback_query(F.data.startswith('switch_subject_type:'))
+@error_handler
+async def change_subject_type(callback: types.CallbackQuery):
+    subject_id = int(str(callback.data).split(':')[1])
+    subject = await user_service.get_subject(callback.message.chat.id, subject_id)
+    new_subject = await user_service.change_subject_type(callback.message.chat.id, subject_id, subject.subject_type.next())
+
+    await get_subject(callback, new_subject.id)
+
+
+
 
 @router.callback_query(StateFilter(None), F.data == 'add_subject')
 @error_handler
