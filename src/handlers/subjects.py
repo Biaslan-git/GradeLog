@@ -25,7 +25,7 @@ async def subjects(callback: types.CallbackQuery):
         subject_grades = subject.grades
         mark_icon = get_subject_icon(subject, subject_grades)
         buttons.append([types.InlineKeyboardButton(
-            text=f'{subject.title} {mark_icon}',
+            text=f'{'<' if subject.subject_type == SubjectType.EXAM else ''} {subject.title} {mark_icon} {'>' if subject.subject_type == SubjectType.EXAM else ''}',
             callback_data=f'subject_{subject.id}'
         )])
     
