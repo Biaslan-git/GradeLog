@@ -55,20 +55,26 @@ async def get_subject(callback: types.CallbackQuery, subject_id: int | None = No
 
     subject_stat = get_subject_stat(subject, grades)
 
-    stat_text = (
-        '<b>Шкала оценивания</b>\n'
-        f'<b>Удовлетворительно</b>: <i> {f'😐 {subject_stat.need_for_ok}' or '-'}</i>\n'
-        f'<b>Зачтено</b>: <i>{f'🙂 {subject_stat.need_for_passed}' or '-'}</i>\n'
-        f'<b>Хорошо</b>: <i>{f'😁 {subject_stat.need_for_good}' or '-'}</i>\n'
-        f'<b>Отлично</b>: <i>{f'😎 {subject_stat.need_for_great}' or '-'}</i>\n'
-    )
+    if subject.subject_type == SubjectType.EXAM:
+        stat_text = '<b>Шкала оценивания</b>\n'
+        stat_text += (
+            f'<b>Удовлетворительно</b>: <i>{f'⭕ {subject_stat.need_for_ok}' or '-'}</i>\n'
+            f'<b>Хорошо</b>: <i>{f'✅ {subject_stat.need_for_good}' or '-'}</i>\n'
+            f'<b>Отлично</b>: <i>{f'✅ {subject_stat.need_for_great}' or '-'}</i>\n'
+        ) if subject_stat.cur_grades_sum else 'Не хватает данных'
+    else:
+        stat_text = (
+            '<b>Шкала оценивания</b>\n'
+        )
+        stat_text += f'<b>Зачтено</b>: <i>{f'✅ {subject_stat.need_for_passed}' or '-'}</i>\n' if subject_stat.cur_grades_sum else 'Не хватает данных'
+
     
     answer = (
         f'<b>Предмет:</b> <i>{escape_html(subject.title)}</i>\n'
         f'<b>Соотношение часов:</b> <i>{subject.numerator}/{subject.denominator}</i>\n'
         f'<b>Текущее кол-во пар:</b> <i>{subject_stat.cur_classes_count}</i>\n'
         f'<b>Текущее кол-во баллов:</b> <i>{subject_stat.cur_grades_sum}</i>\n'
-        f'<b>Текущая отметка:</b> <i>{subject_stat.cur_mark_with_icon}</i>\n\n'
+        f'<b>Текущая отметка:</b> <i>{subject_stat.cur_mark_with_icon if subject_stat.cur_grades_sum else 'Не хватает данных' }</i>\n\n'
         f'{stat_text}'
     )
 

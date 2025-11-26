@@ -1,5 +1,5 @@
 from typing import Sequence
-from src.models import Grade, Subject
+from src.models import Grade, Subject, SubjectType
 from src.constants import grades_to_marks_table
 from src.schemas import SubjectStatSchema
 
@@ -33,16 +33,21 @@ def get_subject_stat(subject: Subject, subject_grades: Sequence[Grade]) -> Subje
     need_for_good = calc_threshold("good")
     need_for_great = calc_threshold("great")
 
-    if need_for_great and cur_grade_sum >= need_for_great:
-        cur_mark, cur_mark_icon = "отлично", "😎"
-    elif need_for_good and cur_grade_sum >= need_for_good:
-        cur_mark, cur_mark_icon = "хорошо", "😁"
-    elif need_for_ok and cur_grade_sum >= need_for_ok:
-        cur_mark, cur_mark_icon = "удовлетворительно", "😐"
-    elif need_for_passed and cur_grade_sum >= need_for_passed:
-        cur_mark, cur_mark_icon = "зачтено", "🙂"
+    if subject.subject_type == SubjectType.EXAM:
+        if need_for_great and cur_grade_sum >= need_for_great:
+            cur_mark, cur_mark_icon = "отлично", "✅"
+        elif need_for_good and cur_grade_sum >= need_for_good:
+            cur_mark, cur_mark_icon = "хорошо", "✅"
+        elif need_for_ok and cur_grade_sum >= need_for_ok:
+            cur_mark, cur_mark_icon = "удовлетворительно", "⭕"
+        else:
+            cur_mark, cur_mark_icon = "слишком мало баллов", "❌"
     else:
-        cur_mark, cur_mark_icon = "слишком мало баллов", "😣"
+        if need_for_passed and cur_grade_sum >= need_for_passed:
+            cur_mark, cur_mark_icon = "зачтено", "✅"
+        else:
+            cur_mark, cur_mark_icon = "слишком мало баллов", "❌"
+
 
     return SubjectStatSchema(
         cur_classes_count=cur_classes_count,
@@ -77,14 +82,18 @@ def get_subject_icon(subject: Subject, subject_grades: Sequence[Grade]) -> str:
     need_for_good = calc_threshold("good")
     need_for_great = calc_threshold("great")
 
-    if need_for_great and cur_grade_sum >= need_for_great:
-        return "😎"
-    elif need_for_good and cur_grade_sum >= need_for_good:
-        return "😁"
-    elif need_for_ok and cur_grade_sum >= need_for_ok:
-        return "😐"
-    elif need_for_passed and cur_grade_sum >= need_for_passed:
-        return "🙂"
+    if subject.subject_type == SubjectType.EXAM:
+        if need_for_great and cur_grade_sum >= need_for_great:
+            return "✅"
+        elif need_for_good and cur_grade_sum >= need_for_good:
+            return "✅"
+        elif need_for_ok and cur_grade_sum >= need_for_ok:
+            return "⭕"
+        else:
+            return "❌"
     else:
-        return "😣"
+        if need_for_passed and cur_grade_sum >= need_for_passed:
+            return "✅"
+        else:
+            return "❌"
 

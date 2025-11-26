@@ -45,7 +45,8 @@ class Subject(Base):
 
     subject_type: Mapped[SubjectType] = mapped_column(
         Enum(SubjectType), 
-        default=SubjectType.CREDIT
+        default=SubjectType.CREDIT,
+        server_default=SubjectType.CREDIT.name,
     )
 
     user_id: Mapped[int] = mapped_column(ForeignKey('users.id'), nullable=False)
